@@ -7,19 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('answers', function (Blueprint $table): void {
-            $table->dropForeign(['user_id']);
-            $table->foreignId('user_id')->nullable()->change();
-            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
-        });
+        // Already handled in create_answers_table migration
     }
 
     public function down(): void
     {
-        Schema::table('answers', function (Blueprint $table): void {
-            $table->dropForeign(['user_id']);
-            $table->foreignId('user_id')->nullable(false)->change();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+        // Already handled in create_answers_table migration
     }
 };
