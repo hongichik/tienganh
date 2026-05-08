@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             RolePermissionSeeder::class,
             WritingQuestionAnswerSeeder::class,
+            VocabularySeeder::class,
         ]);
     }
 }

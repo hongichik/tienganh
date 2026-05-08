@@ -73,6 +73,12 @@ return [
                         'route' => 'admin.content.answer.index',
                         'active' => 'admin/content/answer*',
                     ],
+                    [
+                        'text' => 'Từ vựng',
+                        'icon' => 'bi bi-book',
+                        'route' => 'admin.content.vocabulary.index',
+                        'active' => 'admin/content/vocabulary*',
+                    ],
                 ],
             ],
         ],

@@ -129,11 +129,11 @@
             <p>Luyện câu cơ bản, sử dụng từ vựng cơ bản và cấu trúc ngắn.</p>
         </a>
 
-        <article class="block">
+        <a class="block block-link" href="{{ route('user.writing.part2') }}">
             <span class="badge">KHỐI 2</span>
             <h2>Part 2</h2>
             <p>Luyện mô tả và viết đoạn ngắn theo chủ đề đã cho.</p>
-        </article>
+        </a>
 
         <article class="block">
             <span class="badge">KHỐI 3</span>
@@ -147,11 +147,11 @@
             <p>Viết bài hoàn chỉnh, chú ý bố cục, ngữ pháp và logic trình bày.</p>
         </article>
 
-        <article class="block">
+        <a class="block block-link" href="{{ route('user.writing.vocabulary') }}">
             <span class="badge">KHỐI 5</span>
             <h2>Từ mới</h2>
             <p>Tổng hợp từ vựng cần nhớ theo chủ đề và các mẫu câu ứng dụng.</p>
-        </article>
+        </a>
     </section>
 </main>
 </body>

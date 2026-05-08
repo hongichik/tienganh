@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\AnswerController;
+use App\Http\Controllers\Admin\VocabularyController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest:admin')->group(function () {
@@ -31,6 +32,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('content')->name('content.')->group(function () {
             Route::resource('question', QuestionController::class)->except(['show']);
             Route::resource('answer', AnswerController::class)->except(['show']);
+            Route::resource('vocabulary', VocabularyController::class)->except(['show']);
         });
     });
 });
