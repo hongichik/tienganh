@@ -77,7 +77,19 @@ class AnswerController extends Controller
             'content' => ['required', 'string'],
             'question_id' => ['required', 'exists:questions,id'],
             'user_id' => ['nullable', 'exists:users,id'],
+            'answer_position' => ['nullable', 'integer', 'between:1,3'],
         ]);
+
+        $questionType = Question::query()->whereKey((int) $data['question_id'])->value('type');
+        if ($questionType === 'viet3' && empty($data['answer_position'])) {
+            return back()
+                ->withErrors(['answer_position' => 'Với câu hỏi VIET3, bạn phải chọn vị trí đáp án 1/2/3.'])
+                ->withInput();
+        }
+
+        if ($questionType !== 'viet3') {
+            $data['answer_position'] = null;
+        }
 
         Answer::create($data);
 
@@ -98,7 +110,19 @@ class AnswerController extends Controller
             'content' => ['required', 'string'],
             'question_id' => ['required', 'exists:questions,id'],
             'user_id' => ['nullable', 'exists:users,id'],
+            'answer_position' => ['nullable', 'integer', 'between:1,3'],
         ]);
+
+        $questionType = Question::query()->whereKey((int) $data['question_id'])->value('type');
+        if ($questionType === 'viet3' && empty($data['answer_position'])) {
+            return back()
+                ->withErrors(['answer_position' => 'Với câu hỏi VIET3, bạn phải chọn vị trí đáp án 1/2/3.'])
+                ->withInput();
+        }
+
+        if ($questionType !== 'viet3') {
+            $data['answer_position'] = null;
+        }
 
         $answer->update($data);
 

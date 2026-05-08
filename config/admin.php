@@ -74,6 +74,12 @@ return [
                         'active' => 'admin/content/answer*',
                     ],
                     [
+                        'text' => 'Đề Part 4',
+                        'icon' => 'bi bi-envelope-paper',
+                        'route' => 'admin.content.part4.index',
+                        'active' => 'admin/content/part4*',
+                    ],
+                    [
                         'text' => 'Từ vựng',
                         'icon' => 'bi bi-book',
                         'route' => 'admin.content.vocabulary.index',

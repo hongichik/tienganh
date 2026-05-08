@@ -14,6 +14,11 @@ class Answer extends Model
         'content',
         'question_id',
         'user_id',
+        'answer_position',
+    ];
+
+    protected $casts = [
+        'answer_position' => 'integer',
     ];
 
     public function question(): BelongsTo

@@ -13,6 +13,7 @@ use Illuminate\View\View;
 class PartTwoController extends Controller
 {
     private const PART_TWO_TYPE = 'viet2';
+    private const BASE_HINT_POSITION = 0;
 
     public function show(Request $request): View
     {
@@ -36,6 +37,7 @@ class PartTwoController extends Controller
         $personalHint = UserQuestionHint::query()
             ->where('user_id', (int) $request->user()->id)
             ->where('question_id', (int) $question->id)
+            ->where('answer_position', self::BASE_HINT_POSITION)
             ->first();
 
         $showHint = $request->boolean('show_hint');
@@ -92,6 +94,7 @@ class PartTwoController extends Controller
         $personalHint = UserQuestionHint::query()
             ->where('user_id', (int) $request->user()->id)
             ->where('question_id', $questionId)
+            ->where('answer_position', self::BASE_HINT_POSITION)
             ->value('hint');
 
         if ($personalHint) {
@@ -155,6 +158,7 @@ class PartTwoController extends Controller
             [
                 'user_id' => (int) $request->user()->id,
                 'question_id' => $questionId,
+                'answer_position' => self::BASE_HINT_POSITION,
             ],
             [
                 'hint' => trim($data['hint']),

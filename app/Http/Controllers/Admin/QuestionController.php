@@ -59,7 +59,30 @@ class QuestionController extends Controller
         $data = $request->validate([
             'question' => ['required', 'string'],
             'type' => ['required', 'in:viet1,viet2,viet3,viet4'],
+            'chat_prompt_1' => ['nullable', 'string'],
+            'chat_prompt_2' => ['nullable', 'string'],
+            'chat_prompt_3' => ['nullable', 'string'],
         ]);
+
+        if ($data['type'] === 'viet3') {
+            $chatPrompts = [
+                trim((string) ($data['chat_prompt_1'] ?? '')),
+                trim((string) ($data['chat_prompt_2'] ?? '')),
+                trim((string) ($data['chat_prompt_3'] ?? '')),
+            ];
+
+            if (collect($chatPrompts)->filter()->count() !== 3) {
+                return back()
+                    ->withErrors(['chat_prompt_1' => 'Với VIET3, bạn cần nhập đủ 3 phần chat.'])
+                    ->withInput();
+            }
+
+            $data['meta'] = [
+                'chat_prompts' => $chatPrompts,
+            ];
+        }
+
+        unset($data['chat_prompt_1'], $data['chat_prompt_2'], $data['chat_prompt_3']);
 
         Question::create($data);
 
@@ -78,7 +101,32 @@ class QuestionController extends Controller
         $data = $request->validate([
             'question' => ['required', 'string'],
             'type' => ['required', 'in:viet1,viet2,viet3,viet4'],
+            'chat_prompt_1' => ['nullable', 'string'],
+            'chat_prompt_2' => ['nullable', 'string'],
+            'chat_prompt_3' => ['nullable', 'string'],
         ]);
+
+        if ($data['type'] === 'viet3') {
+            $chatPrompts = [
+                trim((string) ($data['chat_prompt_1'] ?? '')),
+                trim((string) ($data['chat_prompt_2'] ?? '')),
+                trim((string) ($data['chat_prompt_3'] ?? '')),
+            ];
+
+            if (collect($chatPrompts)->filter()->count() !== 3) {
+                return back()
+                    ->withErrors(['chat_prompt_1' => 'Với VIET3, bạn cần nhập đủ 3 phần chat.'])
+                    ->withInput();
+            }
+
+            $data['meta'] = [
+                'chat_prompts' => $chatPrompts,
+            ];
+        } else {
+            $data['meta'] = null;
+        }
+
+        unset($data['chat_prompt_1'], $data['chat_prompt_2'], $data['chat_prompt_3']);
 
         $question->update($data);
 

@@ -13,7 +13,12 @@ class UserQuestionHint extends Model
     protected $fillable = [
         'user_id',
         'question_id',
+        'answer_position',
         'hint',
+    ];
+
+    protected $casts = [
+        'answer_position' => 'integer',
     ];
 
     public function user(): BelongsTo

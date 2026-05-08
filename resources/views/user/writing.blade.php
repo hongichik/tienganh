@@ -135,17 +135,17 @@
             <p>Luyện mô tả và viết đoạn ngắn theo chủ đề đã cho.</p>
         </a>
 
-        <article class="block">
+        <a class="block block-link" href="{{ route('user.writing.part3') }}">
             <span class="badge">KHỐI 3</span>
             <h2>Part 3</h2>
-            <p>Phát triển ý và liên kết câu bằng từ nối phù hợp.</p>
-        </article>
+            <p>Trả lời 3 đoạn chat liên tiếp, mỗi đoạn có 1 ô nhập riêng.</p>
+        </a>
 
-        <article class="block">
+        <a class="block block-link" href="{{ route('user.writing.part4') }}">
             <span class="badge">KHỐI 4</span>
             <h2>Part 4</h2>
-            <p>Viết bài hoàn chỉnh, chú ý bố cục, ngữ pháp và logic trình bày.</p>
-        </article>
+            <p>Viết 2 email theo ngữ cảnh: phần ngắn khoảng 50 từ và phần dài 120-150 từ.</p>
+        </a>
 
         <a class="block block-link" href="{{ route('user.writing.vocabulary') }}">
             <span class="badge">KHỐI 5</span>

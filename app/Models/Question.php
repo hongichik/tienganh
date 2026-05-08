@@ -13,6 +13,11 @@ class Question extends Model
     protected $fillable = [
         'question',
         'type',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
     ];
 
     public function answers(): HasMany
