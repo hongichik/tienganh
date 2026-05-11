@@ -85,6 +85,12 @@ return [
                         'route' => 'admin.content.vocabulary.index',
                         'active' => 'admin/content/vocabulary*',
                     ],
+                    [
+                        'text' => 'Tài khoản người dùng',
+                        'icon' => 'bi bi-person-lines-fill',
+                        'route' => 'admin.content.user.index',
+                        'active' => 'admin/content/user*',
+                    ],
                 ],
             ],
         ],

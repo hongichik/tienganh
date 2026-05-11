@@ -99,6 +99,7 @@
 
         .feedback.ok { background: #dcfce7; color: var(--ok); }
         .feedback.bad { background: #fee2e2; color: var(--bad); }
+        .feedback.warn { background: #fef3c7; color: #a16207; }
         .feedback.info { background: #e0f2fe; color: var(--info); }
 
         .hint {
@@ -165,6 +166,110 @@
             color: var(--muted);
             margin: 0 0 18px;
         }
+
+        .ai-tools {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #f8fafc;
+        }
+
+        .ai-tools-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .ai-tools-title {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .ai-tools-note {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .toggle-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #fff;
+            border: 1px solid var(--line);
+        }
+
+        .toggle-copy strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .toggle-copy span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 30px;
+            flex: 0 0 auto;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            background: #cbd5e1;
+            transition: .2s;
+            border-radius: 999px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            top: 4px;
+            background: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+
+        .switch input:checked + .slider {
+            background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        }
+
+        .switch input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .switch input:disabled + .slider {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
@@ -175,6 +280,54 @@
     </div>
 
     <div class="panel">
+        <form method="POST" action="{{ route('user.writing.part1.ai-settings') }}" class="ai-tools" id="part1-ai-settings-form">
+            @csrf
+            <div class="ai-tools-head">
+                <div>
+                    <div class="ai-tools-title">Chế độ AI cho Part 1</div>
+                    <p class="ai-tools-note">
+                        @if ($isProUser)
+                            Bật tắt bằng session theo tài khoản hiện tại. Khi bật AI cho câu hỏi, trang sẽ tải lại để hiện câu hỏi mới.
+                        @else
+                            Chỉ tài khoản Pro mới được bật 2 công tắc này.
+                        @endif
+                    </p>
+                </div>
+                @if ($isProUser)
+                    <span class="badge">Pro</span>
+                @else
+                    <span class="badge" style="background:#f1f5f9;color:#475569;">Free</span>
+                @endif
+            </div>
+
+            <input type="hidden" name="ai_question_enabled" value="0">
+            <input type="hidden" name="ai_answer_enabled" value="0">
+
+            <div class="toggle-grid">
+                <div class="toggle-row">
+                    <div class="toggle-copy">
+                        <strong>Dùng AI trong câu hỏi</strong>
+                        <span>Bật để AI viết lại câu hỏi đang hiển thị. Khi đổi công tắc trang sẽ tự tải lại.</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="ai_question_enabled" value="1" {{ $aiQuestionEnabled ? 'checked' : '' }} {{ $isProUser ? '' : 'disabled' }}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-row">
+                    <div class="toggle-copy">
+                        <strong>Dùng AI trong trả lời</strong>
+                        <span>Bật để AI chấm bổ sung khi câu trả lời không khớp hoàn toàn với đáp án mẫu.</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="ai_answer_enabled" value="1" {{ $aiAnswerEnabled ? 'checked' : '' }} {{ $isProUser ? '' : 'disabled' }}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </form>
+
         @if ($question === null)
             <div class="done">
                 <h2>Hoàn thành!</h2>
@@ -195,13 +348,15 @@
 
             @if ($feedbackStatus === 'correct')
                 <div class="feedback ok">{{ $feedbackMessage }}</div>
+            @elseif ($feedbackStatus === 'near')
+                <div class="feedback warn">{{ $feedbackMessage }}</div>
             @elseif ($feedbackStatus === 'wrong')
                 <div class="feedback bad">{{ $feedbackMessage }}</div>
             @elseif ($feedbackStatus === 'info')
                 <div class="feedback info">{{ $feedbackMessage }}</div>
             @endif
 
-            <div class="question">{{ $question->question }}</div>
+            <div class="question">{{ $questionText }}</div>
 
             @if($showHint)
                 <div class="hint">{{ $hintText }}</div>
@@ -231,7 +386,32 @@
 @if (session('part1_alert_hint'))
 <script>
 window.addEventListener('DOMContentLoaded', function () {
-    alert(@json(session('part1_alert_hint')));
+
+    var aiSettingsForm = document.getElementById('part1-ai-settings-form');
+    if (!aiSettingsForm) {
+        return;
+    }
+
+    aiSettingsForm.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            aiSettingsForm.submit();
+        });
+    });
+});
+</script>
+@else
+<script>
+window.addEventListener('DOMContentLoaded', function () {
+    var aiSettingsForm = document.getElementById('part1-ai-settings-form');
+    if (!aiSettingsForm) {
+        return;
+    }
+
+    aiSettingsForm.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            aiSettingsForm.submit();
+        });
+    });
 });
 </script>
 @endif

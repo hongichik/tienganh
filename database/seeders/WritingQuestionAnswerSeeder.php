@@ -12,6 +12,71 @@ class WritingQuestionAnswerSeeder extends Seeder
     {
         $items = [
             [
+                'question' => 'Where are you from?',
+                'type' => 'viet1',
+                'answers' => 'I am from Hanoi./ I come from Hanoi.',
+            ],
+            [
+                'question' => 'What did you do last night?',
+                'type' => 'viet1',
+                'answers' => 'I stayed at home./ I watched TV./ I studied English.',
+            ],
+            [
+                'question' => 'What is your first language?',
+                'type' => 'viet1',
+                'answers' => 'My first language is Vietnamese./ It is Vietnamese.',
+            ],
+            [
+                'question' => 'What is your job?',
+                'type' => 'viet1',
+                'answers' => 'I am a teacher./ I work as a teacher.',
+            ],
+            [
+                'question' => 'What are you going to do tomorrow?',
+                'type' => 'viet1',
+                'answers' => 'I am going to go to school./ I am going to visit my friends.',
+            ],
+            [
+                'question' => 'What do you like to do after work?',
+                'type' => 'viet1',
+                'answers' => 'I like to watch TV after work./ I like to relax at home.',
+            ],
+            [
+                'question' => 'How often do you walk?',
+                'type' => 'viet1',
+                'answers' => 'Every day./ I walk every morning.',
+            ],
+            [
+                'question' => 'What is your favorite season of the year?',
+                'type' => 'viet1',
+                'answers' => 'My favorite season is spring./ I like summer the most.',
+            ],
+            [
+                'question' => 'What do you like to do every morning?',
+                'type' => 'viet1',
+                'answers' => 'I like to exercise every morning./ I like to drink coffee and read news.',
+            ],
+            [
+                'question' => 'What do you like to do in your free time?',
+                'type' => 'viet1',
+                'answers' => 'I like reading books in my free time./ I like listening to music.',
+            ],
+            [
+                'question' => 'Who do you usually go to the movies with?',
+                'type' => 'viet1',
+                'answers' => 'I usually go with my friends./ I usually go with my family.',
+            ],
+            [
+                'question' => 'Do you like to eat fast food?',
+                'type' => 'viet1',
+                'answers' => 'Yes, I do./ No, I do not. I prefer healthy food.',
+            ],
+            [
+                'question' => 'Where do you like to go on holiday?',
+                'type' => 'viet1',
+                'answers' => 'I like to go to the beach./ I like to visit Da Nang.',
+            ],
+            [
                 'question' => "What's your favourite sport?",
                 'type' => 'viet1',
                 'answers' => 'My favourite sport is football./ I love football./ It\'s football/ I am into football/ I am fond of football.',
@@ -459,18 +524,58 @@ class WritingQuestionAnswerSeeder extends Seeder
 
         ];
 
+        $types = array_values(array_unique(array_map(static fn (array $item): string => (string) $item['type'], $items)));
+
+        $existingQuestionsByType = Question::query()
+            ->whereIn('type', $types)
+            ->get()
+            ->groupBy('type')
+            ->map(function ($questions) {
+                return $questions->keyBy(fn (Question $question): string => $this->normalizeText((string) $question->question));
+            });
+
+        $answerCache = [];
+
         foreach ($items as $item) {
-            $question = Question::firstOrCreate([
-                'question' => $item['question'],
-                'type' => $item['type'],
-            ], [
-                'meta' => $item['meta'] ?? null,
-            ]);
+            $type = (string) $item['type'];
+            $normalizedQuestion = $this->normalizeText((string) $item['question']);
+
+            $question = $existingQuestionsByType[$type][$normalizedQuestion] ?? null;
+
+            if (! $question) {
+                $question = Question::create([
+                    'question' => $item['question'],
+                    'type' => $type,
+                    'meta' => $item['meta'] ?? null,
+                ]);
+
+                if (! isset($existingQuestionsByType[$type])) {
+                    $existingQuestionsByType[$type] = collect();
+                }
+
+                $existingQuestionsByType[$type]->put($normalizedQuestion, $question);
+            }
 
             if (! empty($item['meta'])) {
-                $question->meta = $item['meta'];
-                $question->save();
+                $newMeta = $item['meta'];
+                $currentMeta = $question->meta;
+
+                if ($currentMeta !== $newMeta) {
+                    $question->meta = $newMeta;
+                    $question->save();
+                }
             }
+
+            if (! array_key_exists($question->id, $answerCache)) {
+                $answerCache[$question->id] = Answer::query()
+                    ->where('question_id', $question->id)
+                    ->get()
+                    ->keyBy(function (Answer $answer): string {
+                        return $this->buildAnswerKey($answer->answer_position, (string) $answer->content);
+                    });
+            }
+
+            $existingAnswerMap = $answerCache[$question->id];
 
             if (is_array($item['answers'])) {
                 $firstAnswer = $item['answers'][0] ?? null;
@@ -482,12 +587,21 @@ class WritingQuestionAnswerSeeder extends Seeder
                             continue;
                         }
 
-                        Answer::firstOrCreate([
+                        $position = (int) ($answerItem['position'] ?? 0) ?: null;
+                        $answerKey = $this->buildAnswerKey($position, $answerText);
+
+                        if ($existingAnswerMap->has($answerKey)) {
+                            continue;
+                        }
+
+                        $createdAnswer = Answer::create([
                             'question_id' => $question->id,
                             'user_id' => null,
-                            'answer_position' => (int) ($answerItem['position'] ?? 0) ?: null,
+                            'answer_position' => $position,
                             'content' => $answerText,
                         ]);
+
+                        $existingAnswerMap->put($answerKey, $createdAnswer);
                     }
 
                     continue;
@@ -499,13 +613,37 @@ class WritingQuestionAnswerSeeder extends Seeder
             }
 
             foreach ($answers as $answerText) {
-                Answer::firstOrCreate([
+                $answerKey = $this->buildAnswerKey(null, (string) $answerText);
+
+                if ($existingAnswerMap->has($answerKey)) {
+                    continue;
+                }
+
+                $createdAnswer = Answer::create([
                     'question_id' => $question->id,
                     'user_id' => null,
                     'answer_position' => null,
                     'content' => $answerText,
                 ]);
+
+                $existingAnswerMap->put($answerKey, $createdAnswer);
             }
         }
+    }
+
+    private function buildAnswerKey(?int $position, string $content): string
+    {
+        $normalizedContent = $this->normalizeText($content);
+
+        return ($position ?? 'null') . '|' . $normalizedContent;
+    }
+
+    private function normalizeText(string $text): string
+    {
+        $normalized = str_replace(["\xE2\x80\x99", "\xE2\x80\x98", '`'], "'", $text);
+        $normalized = mb_strtolower($normalized);
+        $normalized = preg_replace('/\s+/', ' ', trim($normalized)) ?? trim($normalized);
+
+        return $normalized;
     }
 }

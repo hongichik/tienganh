@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'part1_ai' => [
+        'base_url' => env('PART1_AI_BASE_URL', 'https://api.openai.com/v1'),
+        'api_key' => env('PART1_AI_API_KEY'),
+        'model' => env('PART1_AI_MODEL', 'gpt-4o-mini'),
+        'timeout' => (int) env('PART1_AI_TIMEOUT', 20),
+    ],
+
 ];

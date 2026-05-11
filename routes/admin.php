@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\AnswerController;
 use App\Http\Controllers\Admin\PartFourController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VocabularyController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -35,6 +36,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::resource('answer', AnswerController::class)->except(['show']);
             Route::resource('part4', PartFourController::class)->except(['show']);
             Route::resource('vocabulary', VocabularyController::class)->except(['show']);
+            Route::resource('user', UserController::class)->except(['show']);
         });
     });
 });

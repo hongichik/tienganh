@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function (): void {
 	Route::get('/home', [HomeController::class, 'index'])->name('user.home');
 	Route::get('/writing', [WritingController::class, 'index'])->name('user.writing');
 	Route::get('/writing/part-1', [PartOneController::class, 'show'])->name('user.writing.part1');
+	Route::post('/writing/part-1/ai-settings', [PartOneController::class, 'updateAiSettings'])->name('user.writing.part1.ai-settings');
 	Route::post('/writing/part-1/answer', [PartOneController::class, 'submitAnswer'])->name('user.writing.part1.answer');
 	Route::post('/writing/part-1/personal-hint', [PartOneController::class, 'savePersonalHint'])->name('user.writing.part1.personal-hint');
 	Route::post('/writing/part-1/restart', [PartOneController::class, 'restart'])->name('user.writing.part1.restart');
