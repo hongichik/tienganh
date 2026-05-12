@@ -17,11 +17,14 @@ class PartOneController extends Controller
 {
     private const PART_ONE_TYPE = 'viet1';
     private const BASE_HINT_POSITION = 0;
+    private const AI_QUESTION_COUNT = 20;
     private const AI_QUESTION_SESSION_KEY = 'part1_ai_question_enabled';
     private const AI_ANSWER_SESSION_KEY = 'part1_ai_answer_enabled';
+    private const AI_QUESTION_MAP_SESSION_KEY = 'part1_ai_question_map';
 
     public function show(Request $request): View
     {
+
         $queue = $this->getOrInitializeQueue($request);
         $isProUser = $this->isProUser($request);
         $aiQuestionEnabled = $this->isAiQuestionEnabled($request);
@@ -87,7 +90,7 @@ class PartOneController extends Controller
                 'note' => 'Sua hook AI sinh cau hoi tai day neu can.',
             ]);
 
-            $questionText = $this->resolveAiQuestionText($request, $question);
+            $questionText = $this->resolveAiQuestionText($request, $question, $queue);
         }
 
         return view('user.part1', [
@@ -110,6 +113,7 @@ class PartOneController extends Controller
     public function updateAiSettings(Request $request): RedirectResponse
     {
         $isProUser = $this->isProUser($request);
+        $previousAiQuestionEnabled = $this->isAiQuestionEnabled($request);
 
         $data = $request->validate([
             'ai_question_enabled' => ['nullable', 'boolean'],
@@ -135,8 +139,13 @@ class PartOneController extends Controller
             $this->aiAnswerSessionKey($request) => $aiAnswerEnabled,
         ]);
 
-        if (! $aiQuestionEnabled) {
-            session()->forget($this->aiQuestionTextSessionKey($request));
+        if ($aiQuestionEnabled !== $previousAiQuestionEnabled) {
+            session()->forget($this->queueSessionKey($request));
+            session()->forget($this->queueTotalSessionKey($request));
+        }
+
+        if (! $aiQuestionEnabled || $aiQuestionEnabled !== $previousAiQuestionEnabled) {
+            session()->forget($this->aiQuestionMapSessionKey($request));
         }
 
         return redirect()->route('user.writing.part1')
@@ -287,6 +296,7 @@ class PartOneController extends Controller
     {
         session()->forget($this->queueSessionKey($request));
         session()->forget($this->queueTotalSessionKey($request));
+        session()->forget($this->aiQuestionMapSessionKey($request));
 
         return redirect()->route('user.writing.part1')
             ->with('part1_feedback_status', 'info')
@@ -296,15 +306,28 @@ class PartOneController extends Controller
     private function getOrInitializeQueue(Request $request): Collection
     {
         $sessionKey = $this->queueSessionKey($request);
+        $targetCount = $this->isAiQuestionEnabled($request) ? self::AI_QUESTION_COUNT : null;
         $existing = collect(session($sessionKey, []))->map(fn ($id): int => (int) $id)->filter();
 
         if ($existing->isNotEmpty()) {
+            if ($targetCount !== null) {
+                $existing = $existing->take($targetCount)->values();
+                session([$sessionKey => $existing->all()]);
+                session([$this->queueTotalSessionKey($request) => $existing->count()]);
+            }
+
             return $existing->values();
         }
 
-        $ids = Question::query()
+        $query = Question::query()
             ->where('type', self::PART_ONE_TYPE)
-            ->inRandomOrder()
+            ->inRandomOrder();
+
+        if ($targetCount !== null) {
+            $query->limit($targetCount);
+        }
+
+        $ids = $query
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->values();
@@ -335,9 +358,9 @@ class PartOneController extends Controller
         return self::AI_ANSWER_SESSION_KEY . '_user_' . (int) $request->user()->id;
     }
 
-    private function aiQuestionTextSessionKey(Request $request): string
+    private function aiQuestionMapSessionKey(Request $request): string
     {
-        return 'part1_ai_question_text_user_' . (int) $request->user()->id;
+        return self::AI_QUESTION_MAP_SESSION_KEY . '_user_' . (int) $request->user()->id;
     }
 
     private function isProUser(Request $request): bool
@@ -355,43 +378,62 @@ class PartOneController extends Controller
         return $this->isProUser($request) && (bool) session($this->aiAnswerSessionKey($request), false);
     }
 
-    private function resolveAiQuestionText(Request $request, Question $question): string
+    private function resolveAiQuestionText(Request $request, Question $question, Collection $queue): string
     {
-        $cache = collect(session($this->aiQuestionTextSessionKey($request), []));
-        $cachedQuestionText = $cache->get((string) $question->id);
+        $questionMap = $this->getOrInitializeAiQuestionMap($request, $queue);
+        $mappedQuestionText = $questionMap->get((string) $question->id);
 
-        if (is_string($cachedQuestionText) && trim($cachedQuestionText) !== '') {
-            return $cachedQuestionText;
+        if (is_string($mappedQuestionText) && trim($mappedQuestionText) !== '') {
+            return trim($mappedQuestionText);
         }
 
-        $generatedQuestion = $this->generateQuestionWithAi((string) $question->question);
-
-        if (! $generatedQuestion) {
-            return (string) $question->question;
-        }
-
-        $cache->put((string) $question->id, $generatedQuestion);
-        session([$this->aiQuestionTextSessionKey($request) => $cache->all()]);
-
-        return $generatedQuestion;
+        return (string) $question->question;
     }
 
-    private function generateQuestionWithAi(string $originalQuestion): ?string
+    private function getOrInitializeAiQuestionMap(Request $request, Collection $queue): Collection
     {
-        $payload = [
-            'system' => 'You rewrite short English speaking questions for A1-A2 learners. Keep the same meaning, make the sentence natural, and return JSON only with key question.',
-            'user' => 'Original question: ' . $originalQuestion,
-        ];
+        $sessionKey = $this->aiQuestionMapSessionKey($request);
+        $existingMap = collect(session($sessionKey, []));
 
-        $result = $this->callAiChat($payload);
-
-        if (! is_array($result)) {
-            return null;
+        if ($existingMap->isNotEmpty()) {
+            return $existingMap;
         }
 
-        $question = trim((string) ($result['question'] ?? ''));
+        $generatedQuestions = collect(AI::generateQuestions())
+            ->filter(fn ($value): bool => is_string($value) && trim($value) !== '')
+            ->map(fn (string $value): string => trim($value))
+            ->values();
 
-        return $question !== '' ? $question : null;
+        if ($generatedQuestions->isEmpty()) {
+            return collect();
+        }
+
+        $uniqueQueueIds = $queue
+            ->map(fn ($id): int => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($uniqueQueueIds->isEmpty()) {
+            return collect();
+        }
+
+        $questionCount = $generatedQuestions->count();
+        $map = [];
+
+        foreach ($uniqueQueueIds as $index => $questionId) {
+            $questionText = $generatedQuestions->get($index % $questionCount);
+
+            if (! is_string($questionText) || trim($questionText) === '') {
+                continue;
+            }
+
+            $map[(string) $questionId] = trim($questionText);
+        }
+
+        session([$sessionKey => $map]);
+
+        return collect($map);
     }
 
     private function evaluateAnswerWithAi(Request $request, Question $question, string $submittedAnswer): bool

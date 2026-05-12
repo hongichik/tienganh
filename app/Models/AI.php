@@ -9,8 +9,59 @@ class AI
 {
     public const GPT_5_4_NANO = 'gpt-5.4-nano';
 
+    public static function generateQuestions()
+    {
+        $data = (new self())->chatCompletionText(
+            '
+                Bạn là AI tạo câu hỏi luyện nói tiếng Anh giao tiếp.
 
-    public static function AIReplyPart1($question, $answer) {
+                Quy tắc:
+                - Tạo đúng 20 câu hỏi.
+                - Độ khó từ A1 đến B1.
+                - Chủ đề đa dạng:
+                + bản thân
+                + gia đình
+                + bạn bè
+                + học tập
+                + công việc
+                + công nghệ
+                + du lịch
+                + đồ ăn
+                + sức khỏe
+                + thể thao
+                + âm nhạc
+                + phim ảnh
+                + mạng xã hội
+                + thời tiết
+                + kế hoạch tương lai
+                + trải nghiệm quá khứ
+                + thói quen
+                + cảm xúc
+                + mua sắm
+                + cuộc sống hàng ngày
+                - Câu hỏi tự nhiên như người bản xứ.
+                - Không lặp lại ý.
+                - Mỗi câu tối đa 15 từ.
+                - Ưu tiên câu dễ trả lời ngắn.
+
+                Yêu cầu:
+                - Chỉ trả về JSON array hợp lệ.
+                - Không markdown.
+                - Không giải thích.
+                - Format:
+                [
+                "Question 1?",
+                "Question 2?"
+                ]
+                ',
+                'Tạo 20 câu hỏi tiếng Anh giao tiếp đa chủ đề.'
+        );
+
+        return json_decode($data['content'], true);
+    }
+
+    public static function AIReplyPart1($question, $answer)
+    {
         $data = (new self())->chatCompletionText(
             'Bạn là AI kiểm tra câu trả lời tiếng Anh ngắn.
                 Quy tắc:
@@ -47,8 +98,7 @@ class AI
         ?string $reasoningEffort = "none",
         ?string $returnType = 'data',
         array $overrides = []
-    ): ?array
-    {
+    ): ?array {
         $apiKey = (string) env('OPENAI_API_KEY', '');
         $baseUrl = rtrim((string) ($overrides['base_url'] ?? env('OPENAI_BASE_URL', 'https://api.openai.com/v1')), '/');
         $model = (string) ($overrides['model'] ?? self::GPT_5_4_NANO);
