@@ -91,6 +91,51 @@ class AI
         );
         return json_decode($data['content'], true);
     }
+
+    public static function AIAnalyzePart1Hint($question)
+    {
+        $data = (new self())->chatCompletionText(
+            'Bạn là một chuyên gia ngôn ngữ học và luyện thi IELTS/CEFR. Phân tích câu hỏi tiếng Anh theo các mục sau:
+
+1. **Giải nghĩa & Ngữ pháp**
+   - Dịch nghĩa: Dịch câu hỏi sang tiếng Việt (1 dòng).
+   - Thì (Tense): Tên thì của câu hỏi (VD: Present Simple, Present Continuous).
+   - Từ khóa: 2-3 từ quan trọng nhất.
+
+2. **Ngữ cảnh**: (VD: Đời thường, Công việc, Học thuật, Bạn bè).
+
+3. **Công thức trả lời**: Cấu trúc [Subject] + [Verb-chia theo thì] + [Object/Adverb]. Dùng ký hiệu V-ing, V-ed, V-bare.
+
+4. **Gợi ý trả lời**
+   - Ngắn gọn: (1 câu trực tiếp).
+   - Mở rộng: (2-3 câu chi tiết).
+   - Lý do dùng thì: Giải thích tại sao dùng thì đó.
+
+Yêu cầu:
+- Trả về JSON hợp lệ.
+- Không markdown, không giải thích thêm.
+- Trả lời súc tích, không rườm rà.
+- Phải sử dụng tiếng Anh (ngoài dịch Việt).
+- Format JSON (key: dich_nghia, tense, tu_khoa, ngữ_cảnh, cong_thuc, tro_loi_ngan_gon, tro_loi_mo_rong, ly_do_thì).
+
+Trả về JSON:
+{
+  "dich_nghia": "...",
+  "tense": "...",
+  "tu_khoa": "...",
+  "ngữ_cảnh": "...",
+  "cong_thuc": "...",
+  "tro_loi_ngan_gon": "...",
+  "tro_loi_mo_rong": "...",
+  "ly_do_thì": "..."
+}
+            ',
+            'Phân tích câu hỏi: ' . $question,
+        );
+
+        return json_decode($data['content'], true);
+    }
+
     private function chatCompletionText(
         string $developerText,
         ?string $userText = null,

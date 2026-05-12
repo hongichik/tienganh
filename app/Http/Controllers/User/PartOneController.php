@@ -59,17 +59,31 @@ class PartOneController extends Controller
         $hintText = null;
 
         if ($showHint) {
-            if ($personalHint !== null) {
-                $hintText = 'Gợi ý cá nhân: ' . $personalHint->hint;
+            if ($aiQuestionEnabled) {
+                // When AI question mode is on, provide detailed AI-powered hint
+                $questionTextForHint = $this->resolveAiQuestionText($request, $question, $queue);
+                $aiHintAnalysis = AI::AIAnalyzePart1Hint($questionTextForHint);
+                
+                if (is_array($aiHintAnalysis)) {
+                    $hintText = view('user.part1-ai-hint', $aiHintAnalysis)->render();
+                } else {
+                    // Fallback if AI fails
+                    $hintText = 'Gợi ý AI không khả dụng. Vui lòng thử lại.';
+                }
             } else {
-                $commonHint = $question->answers
-                    ->whereNull('user_id')
-                    ->pluck('content')
-                    ->filter()
-                    ->map(fn (string $value): string => trim($value))
-                    ->first();
+                // Original DB-based hint
+                if ($personalHint !== null) {
+                    $hintText = 'Gợi ý cá nhân: ' . $personalHint->hint;
+                } else {
+                    $commonHint = $question->answers
+                        ->whereNull('user_id')
+                        ->pluck('content')
+                        ->filter()
+                        ->map(fn (string $value): string => trim($value))
+                        ->first();
 
-                $hintText = $commonHint ? ('Gợi ý chung: ' . $commonHint) : 'Hiện chưa có gợi ý chung.';
+                    $hintText = $commonHint ? ('Gợi ý chung: ' . $commonHint) : 'Hiện chưa có gợi ý chung.';
+                }
             }
         }
 

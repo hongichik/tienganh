@@ -359,7 +359,7 @@
             <div class="question">{{ $questionText }}</div>
 
             @if($showHint)
-                <div class="hint">{{ $hintText }}</div>
+                <div class="hint">{!! $hintText !!}</div>
             @endif
 
             <form method="POST" action="{{ route('user.writing.part1.answer') }}">
