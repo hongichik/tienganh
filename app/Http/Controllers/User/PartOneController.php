@@ -155,7 +155,9 @@ class PartOneController extends Controller
 
     public function submitAnswer(Request $request): RedirectResponse
     {
+        $aiQuestionEnabled = $this->isAiQuestionEnabled($request);
         $aiAnswerEnabled = $this->isAiAnswerEnabled($request);
+        $shouldUseAiEvaluation = $aiQuestionEnabled || $aiAnswerEnabled;
         $queue = $this->getOrInitializeQueue($request);
 
         if ($queue->isEmpty()) {
@@ -168,6 +170,9 @@ class PartOneController extends Controller
 
         $questionId = (int) $queue->first();
         $question = Question::query()->with('answers')->findOrFail($questionId);
+        $questionTextForEvaluation = $aiQuestionEnabled
+            ? $this->resolveAiQuestionText($request, $question, $queue)
+            : (string) $question->question;
 
         $acceptedAnswers = $question->answers
             ->pluck('content')
@@ -190,17 +195,18 @@ class PartOneController extends Controller
         $feedbackMessage = $isCorrect ? 'Đúng rồi!' : 'Sai rồi, câu này sẽ được hỏi lại sau.';
         $aiHint = null;
 
-        if (! $isCorrect && $aiAnswerEnabled) {
+        if (! $isCorrect && $shouldUseAiEvaluation) {
             Log::info('part1.ai_answer_hook', [
                 'user_id' => (int) $request->user()->id,
                 'question_id' => (int) $question->id,
-                'question' => (string) $question->question,
+                'question' => $questionTextForEvaluation,
+                'question_source' => $aiQuestionEnabled ? 'ai_display' : 'db',
                 'submitted_answer' => (string) $data['answer'],
                 'accepted_answers' => $question->answers->pluck('content')->filter()->values()->all(),
                 'note' => 'Sua hook AI cham cau tra loi tai day neu can.',
             ]);
 
-            $aiResult = AI::AIReplyPart1((string) $question->question, (string) $data['answer']);
+            $aiResult = AI::AIReplyPart1($questionTextForEvaluation, (string) $data['answer']);
             $aiStatus = (int) data_get($aiResult, 'trang_thai', 0);
             $aiHint = trim((string) data_get($aiResult, 'goiy', ''));
 
@@ -233,8 +239,8 @@ class PartOneController extends Controller
             }
         }
 
-        if ($aiAnswerEnabled) {
-            // In AI answer mode, only a fully correct answer can advance to next question.
+        if ($shouldUseAiEvaluation) {
+            // In AI scoring mode (AI question or AI answer), only a fully correct answer can advance.
             if ($isCorrect) {
                 $queue->shift();
             }
